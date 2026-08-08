@@ -170,8 +170,8 @@ def handle_interview(payload: InterviewRequest):
     
     if payload.message:
         session["history"].append({"role": "user", "parts": [payload.message]})
-        if not is_explanation_request or session["turn_count"] == 0:
-            session["turn_count"] += 1
+        # FIXED: Increment turn count strictly on every user submission to progress smoothly through topics
+        session["turn_count"] += 1
 
     current_turn = session["turn_count"]
     total_questions = 15
@@ -234,7 +234,6 @@ STRICT INSTRUCTIONS:
         if not client:
             raise Exception("Gemini client is not initialized. Check your API key.")
 
-        # Fixed valid model name (gemini-1.5-flash)
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents="\n".join(chat_contents)
