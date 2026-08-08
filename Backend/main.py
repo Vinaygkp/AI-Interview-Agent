@@ -100,14 +100,19 @@ def handle_interview(payload: InterviewRequest):
         session = sessions[session_id]
         candidate = session["candidate"]
         
-        # If a message is provided, update candidate info if newly passed, append user message & increment turn
         if payload.candidate:
             session["candidate"] = payload.candidate.dict()
             candidate = session["candidate"]
 
+        # Check if user is asking for an explanation instead of answering
+        user_msg = payload.message.strip().lower() if payload.message else ""
+        is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about"])
+        
         if payload.message:
             session["history"].append({"role": "user", "parts": [payload.message]})
-            session["turn_count"] += 1
+            # Only increment turn count if it's NOT a request for explanation, so they stay on the same topic and get taught!
+            if not is_explanation_request or session["turn_count"] == 0:
+                session["turn_count"] += 1
 
         current_turn = session["turn_count"]
         total_questions = 15
@@ -128,15 +133,26 @@ def handle_interview(payload: InterviewRequest):
         # Determine target topic based on current turn index
         target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
 
-        # Instruction condition for welcoming introduction on the very first question
         intro_instruction = ""
         if current_turn == 0:
-            intro_instruction = f"Since this is the opening message for {candidate.get('name')}, start with a warm, professional greeting and welcoming introduction (e.g., 'Hello {candidate.get('name')}! Welcome to your technical assessment interview...') before presenting the first question."
+            intro_instruction = f"Since this is the opening message for {candidate.get('name')}, start with a warm, professional greeting and welcoming introduction before presenting the first question."
         else:
             intro_instruction = "Provide brief, encouraging transitional feedback or context regarding the candidate's previous response."
 
+        # Add specific instruction if user asked for an explanation
+        explanation_guidance = ""
+        if is_explanation_request:
+            explanation_guidance = f"""
+CRITICAL OVERRIDE: The candidate has asked you to explain the concept ("{payload.message}").
+DO NOT evaluate a response or skip ahead. Act as a supportive technical mentor:
+1. Clearly and concisely explain the core concepts of "{target_topic}".
+2. After explaining, ask a helpful, guiding follow-up question on "{target_topic}" to check their understanding.
+"""
+        else:
+            explanation_guidance = f"You MUST base your main technical question strictly and exclusively on the MANDATORY TOPIC FOR THIS QUESTION: '{target_topic}'."
+
         system_prompt = f"""
-You are an expert, warm, and professional technical interviewer conducting a strict, structured 15-stage technical interview for a {candidate.get('jobRole')} position.
+You are an expert, warm, and professional technical interviewer conducting a structured 15-stage technical interview for a {candidate.get('jobRole')} position.
 Candidate Name: {candidate.get('name')}
 Experience: {candidate.get('yearsExperience')} years
 Education: {candidate.get('education')}
@@ -146,9 +162,9 @@ MANDATORY TOPIC FOR THIS QUESTION: {target_topic}
 
 STRICT INSTRUCTIONS:
 1. {intro_instruction}
-2. You MUST base your main technical question strictly and exclusively on the MANDATORY TOPIC FOR THIS QUESTION: "{target_topic}". Do not jump to random topics.
+2. {explanation_guidance}
 3. Separate your response into distinct, clear paragraphs using double line breaks (`\n\n`).
-4. ALWAYS place the main technical question for "{target_topic}" in the **very last paragraph**, cleanly separated so it stands out.
+4. ALWAYS place the main technical question or guiding check for "{target_topic}" in the **very last paragraph**, cleanly separated so it stands out.
 5. Do not output JSON, just output your direct conversational reply.
 """
         
@@ -178,18 +194,13 @@ STRICT INSTRUCTIONS:
     except Exception as e:
         print("CRITICAL ERROR IN /api/interview:", str(e))
         
-        # Fallback Mode for Rate Limits / Quota Exceeded (429) or client issues
         if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e) or client is None:
             current_turn = sessions.get(payload.sessionId, {}).get("turn_count", 0)
             target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
             cand_name = payload.candidate.name if payload.candidate else "Candidate"
             
-            if current_turn == 0:
-                fallback_text = f"Hello {cand_name}! Welcome to your technical assessment interview.\n\nLet's start our technical discussion on the mandatory topic of {target_topic}.\n\nCan you explain the core architectural patterns, design decisions, and practical trade-offs involved in this domain?"
-            else:
-                fallback_text = f"Thank you for your response. Let's continue our technical discussion on the mandatory topic of {target_topic}.\n\nCan you explain the core architectural patterns, design decisions, and practical trade-offs involved in this domain?"
+            fallback_text = f"Let's break down the core concepts of {target_topic}.\n\nIn this domain, engineers focus on robust architectural patterns and scalable trade-offs.\n\nCan you explain how you would apply this concept in a real-world system?"
             
-            # Save fallback to history so conversation flows naturally
             if payload.sessionId in sessions:
                 sessions[payload.sessionId]["history"].append({"role": "model", "parts": [fallback_text]})
 
