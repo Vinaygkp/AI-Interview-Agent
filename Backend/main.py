@@ -67,23 +67,68 @@ TOPIC_SEQUENCE = [
     "Enterprise System Architecture"
 ]
 
-# Smart Fallback Question Pool for each topic in case API limit hits
-TOPIC_FALLBACK_QUESTIONS = {
-    "Development Environments & Git": "How do you manage feature branches, merge conflicts, and reproducible development setups in a collaborative engineering team?",
-    "Embeddings & Vector Spaces": "How do high-dimensional vector spaces capture semantic meaning, and what role do dense embeddings play in modern machine learning pipelines?",
-    "Semantic Search & Distance Metrics": "What are the trade-offs between Cosine Similarity, Euclidean Distance, and Dot Product when implementing semantic search over large datasets?",
-    "RAG Architecture Basics": "Can you walk through the standard Retrieval-Augmented Generation lifecycle, from document ingestion and chunking to generation?",
-    "Advanced RAG & Retrieval Evaluation": "How do you handle hybrid search (combining keyword and vector search) and evaluate retrieval precision using metrics like MRR or NDCG?",
-    "Vector Databases & Indexing": "Explain how approximate nearest neighbor (ANN) algorithms like HNSW or IVF indices balance search speed, memory footprint, and recall accuracy.",
-    "Vector DB Scaling & Trade-offs": "When scaling a vector database to tens of millions of embeddings, what are the primary throughput and memory trade-offs you encounter?",
-    "Prompt Engineering Fundamentals": "What strategies do you use for system prompt structuring, few-shot prompting, and minimizing hallucination in production LLMs?",
-    "Structured Outputs & Function Calling": "How do you enforce deterministic JSON schemas and handle tool/function calling reliably with LLMs?",
-    "Agentic AI & Reasoning Loops": "Explain how ReAct (Reasoning and Acting) loops enable autonomous agents to execute complex, multi-step tasks dynamically.",
-    "Multi-Agent Orchestration": "What design patterns do you use for coordinating multiple autonomous agents, managing state, and handling inter-agent communication?",
-    "Model Context Protocol (MCP)": "How does the Model Context Protocol standardize secure context exchange between clients, servers, and external tools?",
-    "AI System Security & Guardrails": "What mitigation strategies do you implement to prevent prompt injection attacks, data leaks, and malicious jailbreaks in production AI apps?",
-    "Production AI Deployment": "How do you handle rate limiting, fallback caching, and latency optimization when deploying LLM backends to production environments?",
-    "Enterprise System Architecture": "Design a resilient, scalable enterprise system architecture integrating LLMs, caching layers, vector search, and observability pipelines."
+# Smart Fallback Question Pool with multiple variations per topic so it never repeats the exact same line
+TOPIC_FALLBACK_POOL = {
+    "Development Environments & Git": [
+        "How do you manage feature branches, merge conflicts, and reproducible development setups in a collaborative engineering team?",
+        "What strategies do you use for environment parity between local development and staging containers?"
+    ],
+    "Embeddings & Vector Spaces": [
+        "How do high-dimensional vector spaces capture semantic meaning, and what role do dense embeddings play in modern machine learning pipelines?",
+        "Can you explain how embedding models handle out-of-vocabulary terms and contextual nuances?"
+    ],
+    "Semantic Search & Distance Metrics": [
+        "What are the trade-offs between Cosine Similarity, Euclidean Distance, and Dot Product when implementing semantic search over large datasets?",
+        "When would you choose inner product over cosine distance in normalized vector spaces?"
+    ],
+    "RAG Architecture Basics": [
+        "Can you walk through the standard Retrieval-Augmented Generation lifecycle, from document ingestion and chunking to generation?",
+        "How do chunk size and overlap parameters impact retrieval quality in a RAG pipeline?"
+    ],
+    "Advanced RAG & Retrieval Evaluation": [
+        "How do you handle hybrid search (combining keyword and vector search) and evaluate retrieval precision using metrics like MRR or NDCG?",
+        "Explain how re-ranking models improve the accuracy of retrieved context before passing it to the LLM."
+    ],
+    "Vector Databases & Indexing": [
+        "Explain how approximate nearest neighbor (ANN) algorithms like HNSW or IVF indices balance search speed, memory footprint, and recall accuracy.",
+        "What are the indexing trade-offs when dealing with high update frequencies in vector databases?"
+    ],
+    "Vector DB Scaling & Trade-offs": [
+        "When scaling a vector database to tens of millions of embeddings, what are the primary throughput and memory trade-offs you encounter?",
+        "How do distributed vector clusters handle node failure and replication consistency?"
+    ],
+    "Prompt Engineering Fundamentals": [
+        "What strategies do you use for system prompt structuring, few-shot prompting, and minimizing hallucination in production LLMs?",
+        "How do you handle prompt versioning and regression testing as application requirements evolve?"
+    ],
+    "Structured Outputs & Function Calling": [
+        "How do you enforce deterministic JSON schemas and handle tool/function calling reliably with LLMs?",
+        "What error-handling mechanisms do you deploy when an LLM fails to output valid tool arguments?"
+    ],
+    "Agentic AI & Reasoning Loops": [
+        "Explain how ReAct (Reasoning and Acting) loops enable autonomous agents to execute complex, multi-step tasks dynamically.",
+        "How do you prevent infinite execution loops and excessive token consumption in agentic workflows?"
+    ],
+    "Multi-Agent Orchestration": [
+        "What design patterns do you use for coordinating multiple autonomous agents, managing state, and handling inter-agent communication?",
+        "How do specialized worker agents report status back to a central orchestrator?"
+    ],
+    "Model Context Protocol (MCP)": [
+        "How does the Model Context Protocol standardize secure context exchange between clients, servers, and external tools?",
+        "What security implications arise when exposing local data sources via MCP servers?"
+    ],
+    "AI System Security & Guardrails": [
+        "What mitigation strategies do you implement to prevent prompt injection attacks, data leaks, and malicious jailbreaks in production AI apps?",
+        "How do input/output validation layers protect downstream components from malicious payloads?"
+    ],
+    "Production AI Deployment": [
+        "How do you handle rate limiting, fallback caching, and latency optimization when deploying LLM backends to production environments?",
+        "What observability and tracing tools do you use to monitor LLM token latency and error rates in production?"
+    ],
+    "Enterprise System Architecture": [
+        "Design a resilient, scalable enterprise system architecture integrating LLMs, caching layers, vector search, and observability pipelines.",
+        "How do you ensure enterprise-grade data privacy and zero-data-retention compliance when using external LLM APIs?"
+    ]
 }
 
 class CandidateSchema(BaseModel):
@@ -104,50 +149,52 @@ def root():
 
 @app.post("/api/interview")
 def handle_interview(payload: InterviewRequest):
-    try:
-        session_id = payload.sessionId
-        
-        # Initialize session if it doesn't exist
-        if session_id not in sessions:
-            candidate_info = payload.candidate.dict() if payload.candidate else {"name": "Candidate", "jobRole": "Software Engineer"}
-            sessions[session_id] = {
-                "candidate": candidate_info,
-                "history": [],
-                "turn_count": 0
-            }
-        
-        session = sessions[session_id]
+    session_id = payload.sessionId
+    
+    # Initialize session if it doesn't exist
+    if session_id not in sessions:
+        candidate_info = payload.candidate.dict() if payload.candidate else {"name": "Candidate", "jobRole": "Software Engineer"}
+        sessions[session_id] = {
+            "candidate": candidate_info,
+            "history": [],
+            "turn_count": 0
+        }
+    
+    session = sessions[session_id]
+    candidate = session["candidate"]
+    
+    if payload.candidate:
+        session["candidate"] = payload.candidate.dict()
         candidate = session["candidate"]
-        
-        if payload.candidate:
-            session["candidate"] = payload.candidate.dict()
-            candidate = session["candidate"]
 
-        user_msg = payload.message.strip().lower() if payload.message else ""
-        is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about", "no"])
-        
-        if payload.message:
-            session["history"].append({"role": "user", "parts": [payload.message]})
-            if not is_explanation_request or session["turn_count"] == 0:
-                session["turn_count"] += 1
+    user_msg = payload.message.strip().lower() if payload.message else ""
+    is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about", "no"])
+    
+    # Always increment turn count when a message is submitted (unless it's the very first empty initialization)
+    if payload.message:
+        session["history"].append({"role": "user", "parts": [payload.message]})
+        if not is_explanation_request or session["turn_count"] == 0:
+            session["turn_count"] += 1
 
-        current_turn = session["turn_count"]
-        total_questions = 15
+    current_turn = session["turn_count"]
+    total_questions = 15
 
-        if current_turn >= total_questions:
-            return {
-                "reply": "Thank you. The 15-stage technical interview is now complete.",
-                "done": True,
-                "feedback": {
-                    "summary": f"The candidate {candidate.get('name')} successfully completed all 15 stages of the technical evaluation.",
-                    "strengths": ["Strong structural progression", "Consistent technical depth across modules"],
-                    "gaps": ["Minor areas to explore in production scaling and MCP tooling"],
-                    "next": ["Review advanced distributed systems architecture and security guardrails"]
-                }
+    # HARD CHECK: If 15 turns are completed, immediately return completion and feedback
+    if current_turn >= total_questions:
+        return {
+            "reply": "Thank you. The 15-stage technical interview is now complete.",
+            "done": True,
+            "feedback": {
+                "summary": f"The candidate {candidate.get('name')} successfully completed all 15 stages of the technical evaluation.",
+                "strengths": ["Strong structural progression", "Consistent technical depth across modules"],
+                "gaps": ["Minor areas to explore in production scaling and MCP tooling"],
+                "next": ["Review advanced distributed systems architecture and security guardrails"]
             }
+        }
 
-        target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
+    target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
 
+    try:
         intro_instruction = ""
         if current_turn == 0:
             intro_instruction = f"Since this is the opening message for {candidate.get('name')}, start with a warm, professional greeting and welcoming introduction before presenting the first question."
@@ -206,22 +253,19 @@ STRICT INSTRUCTIONS:
         }
         
     except Exception as e:
-        print("CRITICAL ERROR IN /api/interview:", str(e))
+        print("CRITICAL ERROR IN /api/interview (Using Fallback Pool):", str(e))
         
-        # Smart Fallback mechanism using pre-defined unique topic questions
-        current_turn = sessions.get(payload.sessionId, {}).get("turn_count", 0)
-        target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
-        cand_name = payload.candidate.name if payload.candidate else "Candidate"
-        
-        specific_question = TOPIC_FALLBACK_QUESTIONS.get(target_topic, "Can you explain the architecture and key trade-offs in this module?")
+        # Pick a unique fallback question based on turn count so it never repeats identically
+        questions_list = TOPIC_FALLBACK_POOL.get(target_topic, ["Can you explain the architecture and key trade-offs in this module?"])
+        specific_question = questions_list[current_turn % len(questions_list)]
+        cand_name = candidate.get("name", "Candidate")
         
         if current_turn == 0:
             fallback_text = f"Hello {cand_name}! Welcome to your technical assessment interview.\n\nLet's dive into our discussion on {target_topic}.\n\n{specific_question}"
         else:
             fallback_text = f"Thank you for your input. Let's move forward to our next focus area: {target_topic}.\n\n{specific_question}"
         
-        if payload.sessionId in sessions:
-            sessions[payload.sessionId]["history"].append({"role": "model", "parts": [fallback_text]})
+        session["history"].append({"role": "model", "parts": [fallback_text]})
 
         return {
             "reply": fallback_text,
