@@ -252,12 +252,12 @@ STRICT INSTRUCTIONS:
         if not client:
             raise Exception("Gemini client is not initialized. Check your API key.")
 
-        # response = client.models.generate_content(
-        #     model='gemini-1.5-flash',
-        #     contents="\n".join(chat_contents)
-        # )
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents="\n".join(chat_contents)
+        )
         
-        reply_text = "Yeh ek test response hai jo bina API ke chal raha hai."
+        reply_text= response.text.strip()
         session["history"].append({"role": "model", "parts": [reply_text]})
         
         return {
