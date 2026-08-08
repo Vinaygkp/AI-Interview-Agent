@@ -67,7 +67,6 @@ TOPIC_SEQUENCE = [
     "Enterprise System Architecture"
 ]
 
-# Smart Fallback Question Pool with multiple variations per topic so it never repeats the exact same line
 TOPIC_FALLBACK_POOL = {
     "Development Environments & Git": [
         "How do you manage feature branches, merge conflicts, and reproducible development setups in a collaborative engineering team?",
@@ -151,7 +150,6 @@ def root():
 def handle_interview(payload: InterviewRequest):
     session_id = payload.sessionId
     
-    # Initialize session if it doesn't exist
     if session_id not in sessions:
         candidate_info = payload.candidate.dict() if payload.candidate else {"name": "Candidate", "jobRole": "Software Engineer"}
         sessions[session_id] = {
@@ -170,7 +168,6 @@ def handle_interview(payload: InterviewRequest):
     user_msg = payload.message.strip().lower() if payload.message else ""
     is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about", "no"])
     
-    # Always increment turn count when a message is submitted (unless it's the very first empty initialization)
     if payload.message:
         session["history"].append({"role": "user", "parts": [payload.message]})
         if not is_explanation_request or session["turn_count"] == 0:
@@ -179,7 +176,7 @@ def handle_interview(payload: InterviewRequest):
     current_turn = session["turn_count"]
     total_questions = 15
 
-    # HARD CHECK: If 15 turns are completed, immediately return completion and feedback
+    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages
     if current_turn >= total_questions:
         return {
             "reply": "Thank you. The 15-stage technical interview is now complete.",
@@ -192,7 +189,7 @@ def handle_interview(payload: InterviewRequest):
             }
         }
 
-    target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
+    target_topic = TOPIC_SEQUENCE[current_turn]
 
     try:
         intro_instruction = ""
@@ -237,8 +234,9 @@ STRICT INSTRUCTIONS:
         if not client:
             raise Exception("Gemini client is not initialized. Check your API key.")
 
+        # Fixed valid model name (gemini-1.5-flash)
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents="\n".join(chat_contents)
         )
         
@@ -255,7 +253,6 @@ STRICT INSTRUCTIONS:
     except Exception as e:
         print("CRITICAL ERROR IN /api/interview (Using Fallback Pool):", str(e))
         
-        # Pick a unique fallback question based on turn count so it never repeats identically
         questions_list = TOPIC_FALLBACK_POOL.get(target_topic, ["Can you explain the architecture and key trade-offs in this module?"])
         specific_question = questions_list[current_turn % len(questions_list)]
         cand_name = candidate.get("name", "Candidate")

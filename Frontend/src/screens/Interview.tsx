@@ -151,14 +151,16 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
 
       const aiText = data.reply || "Can you elaborate more on your approach?"
       const activeTopic = data.current_topic || "Technical AI"
-      const next = qIndex + 1
+      
+      // FIXED: Synchronize stage precisely with backend response (1-based stage to 0-based index)
+      const serverStage = typeof data.stage === 'number' ? data.stage - 1 : qIndex + 1
 
       const aiMsg: Message = {
-        id: `q-${next}`,
+        id: `q-${serverStage}`,
         role: 'ai',
         content: aiText,
         topic: activeTopic,
-        day: next + 1,
+        day: serverStage + 1,
         difficulty: 'Technical',
         isFollowUp: true,
       }
@@ -166,7 +168,7 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
       setMessages(prev => [...prev, aiMsg])
       setTopicsCovered(prev => new Set([...prev, activeTopic]))
       setFollowUpCount(c => c + 1)
-      setQIndex(next)
+      setQIndex(serverStage)
     } catch (err: any) {
       setError("Backend connection error. Make sure FastAPI server is running.")
       console.error(err)
