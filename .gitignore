@@ -4,6 +4,7 @@ dist/
 build/
 .vite/
 .DS_Store
+.figma/
 
 # --- Backend (Python / FastAPI) ---
 venv/
