@@ -24,26 +24,28 @@ function scoreColors(score: number): ScoreColor {
 
 export default function Feedback({ feedback, onHome }: Props) {
   const defaultFeedback = {
-    summary: "The candidate demonstrated strong foundational knowledge in modern AI architectures, successfully navigating core concepts with solid technical articulation.",
+    summary: "The candidate demonstrated elite technical proficiency, delivering rigorous, production-grade architectural explanations across advanced AI engineering domains.",
     strengths: [
-      "Clear explanation of semantic similarity and vector spaces",
-      "Good structural approach toward developer environments and version control",
-      "Effective communication during follow-up technical discussions"
+      "Deep architectural clarity on vector databases, HNSW/IVF indexing, and memory-disk trade-offs",
+      "Precise technical handling of hybrid search, RAG pipelines, and evaluation metrics (MRR/NDCG)",
+      "Robust comprehension of agentic loops, structured outputs, and security guardrails"
     ],
     gaps: [
-      "Could elaborate further on deep system design trade-offs in distributed vector search",
-      "Needs more practical familiarity with advanced agentic loops and error recovery"
+      "Minor optimization areas in ultra-low latency distributed edge-deployment scenarios"
     ],
     next: [
-      "Practice advanced distributed systems architecture and scaling vector databases",
-      "Implement a complete multi-agent workflow using Model Context Protocol (MCP)"
+      "Implement multi-agent orchestration frameworks with Model Context Protocol (MCP)",
+      "Deploy custom evaluation harnesses for continuous LLM regression testing"
     ],
     topicScores: [
-      { topic: "Embeddings & Vector Search", score: 85, label: "Advanced" },
-      { topic: "Retrieval-Augmented Generation (RAG)", score: 78, label: "Proficient" },
-      { topic: "Vector Databases & Scaling", score: 68, label: "Competent" },
-      { topic: "Prompt Engineering & Agents", score: 82, label: "Advanced" },
-      { topic: "System Deployment & MCP", score: 60, label: "Developing" },
+      { topic: "Development Environments & Git", score: 95, label: "Expert" },
+      { topic: "Embeddings & Vector Spaces", score: 92, label: "Expert" },
+      { topic: "Semantic Search & Metrics", score: 90, label: "Advanced" },
+      { topic: "RAG Architecture & Evaluation", score: 94, label: "Expert" },
+      { topic: "Vector Databases & Scaling", score: 88, label: "Advanced" },
+      { topic: "Prompt Engineering & Agents", score: 91, label: "Expert" },
+      { topic: "Security, Guardrails & MCP", score: 89, label: "Advanced" },
+      { topic: "Enterprise System Architecture", score: 93, label: "Expert" }
     ]
   }
 
