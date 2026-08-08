@@ -1,0 +1,30 @@
+# --- Frontend (React / Vite / Node) ---
+node_modules/
+dist/
+build/
+.vite/
+.DS_Store
+
+# --- Backend (Python / FastAPI) ---
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# --- Environment Variables & Secrets ---
+.env
+.env.local
+.env.*.local
+
+# --- IDE / Editor Specific ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
