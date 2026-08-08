@@ -55,7 +55,8 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
   useEffect(() => {
     const fetchInitialQuestion = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/interview', {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+        const response = await fetch(`${backendUrl}/api/interview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -87,7 +88,7 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
         }])
         setTopicsCovered(new Set([initialTopic]))
       } catch (err: any) {
-        setError("Backend connection error. Make sure FastAPI server is running on port 8000.")
+        setError("Backend connection error. Make sure FastAPI server is running.")
         console.error(err)
       } finally {
         setIsThinking(false)
@@ -96,7 +97,6 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
 
     fetchInitialQuestion()
   }, [sessionId, candidate])
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isThinking])
