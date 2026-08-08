@@ -175,36 +175,69 @@ def handle_interview(payload: InterviewRequest):
     current_turn = session["turn_count"]
     total_questions = 15
 
-    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages
+    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages & generate dynamic feedback
     if current_turn >= total_questions:
-        return {
-            "reply": "Thank you. The 15-stage technical interview is now complete.",
-            "done": True,
-            "feedback": {
-                "summary": f"The candidate {candidate.get('name')} demonstrated elite technical proficiency, delivering rigorous, production-grade architectural explanations across advanced AI engineering domains.",
-                "strengths": [
-                    "Deep architectural clarity on vector databases, HNSW/IVF indexing, and memory-disk trade-offs",
-                    "Precise technical handling of hybrid search, RAG pipelines, and evaluation metrics (MRR/NDCG)",
-                    "Robust comprehension of agentic loops, structured outputs, and security guardrails"
-                ],
-                "gaps": [
-                    "Minor optimization areas in ultra-low latency distributed edge-deployment scenarios"
-                ],
-                "next": [
-                    "Implement multi-agent orchestration frameworks with Model Context Protocol (MCP)",
-                    "Deploy custom evaluation harnesses for continuous LLM regression testing"
-                ],
+        eval_prompt = f"""
+You are an expert technical evaluator and hiring manager. Analyze the entire interview chat history for candidate {candidate.get('name')} (Role: {candidate.get('jobRole')}, Experience: {candidate.get('yearsExperience')} years).
+Evaluate their actual answers across the interview stages. 
+IMPORTANT: If the candidate gave weak answers, said "no", expressed ignorance, or skipped questions, reflect that accurately with lower scores (e.g., 20% to 50%) and highlight those gaps. If they gave brilliant, detailed answers, give high scores.
+
+You MUST return ONLY a valid JSON object (no markdown code blocks, just raw JSON) with the following exact structure:
+{{
+  "summary": "A detailed executive summary of their performance based strictly on their actual answers provided in the chat.",
+  "strengths": ["Specific strength based on answers", "Another strength"],
+  "gaps": ["Specific knowledge gap or area where they said no/weakly", "Another gap"],
+  "next": ["Actionable next step to improve", "Another recommendation"],
+  "topicScores": [
+    {{ "topic": "Development Environments & Git", "score": <0-100>, "label": "<Expert/Advanced/Competent/Developing/Needs Improvement>" }},
+    {{ "topic": "Embeddings & Vector Spaces", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "Semantic Search & Metrics", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "RAG Architecture & Evaluation", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "Vector Databases & Scaling", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "Prompt Engineering & Agents", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "Security, Guardrails & MCP", "score": <0-100>, "label": "<Label>" }},
+    {{ "topic": "Enterprise System Architecture", "score": <0-100>, "label": "<Label>" }}
+  ]
+}}
+"""
+        eval_contents = [eval_prompt]
+        for h in session["history"]:
+            role = "User" if h["role"] == "user" else "Model"
+            eval_contents.append(f"{role}: {h['parts'][0]}")
+
+        feedback_data = {}
+        try:
+            if client:
+                eval_response = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents="\n".join(eval_contents)
+                )
+                text_resp = eval_response.text.strip()
+                if text_resp.startswith("```json"):
+                    text_resp = text_resp[7:]
+                if text_resp.endswith("```"):
+                    text_resp = text_resp[:-3]
+                text_resp = text_resp.strip()
+                
+                feedback_data = json.loads(text_resp)
+            else:
+                raise Exception("Client not initialized")
+        except Exception as e:
+            print("Error generating dynamic feedback, using fallback:", e)
+            feedback_data = {
+                "summary": f"The interview for {candidate.get('name')} concluded. Based on the responses provided, further preparation is recommended in key technical areas.",
+                "strengths": ["Completed the evaluation workflow"],
+                "gaps": ["Several technical concepts require deeper understanding and practice"],
+                "next": ["Review core system design patterns and practice technical fundamentals"],
                 "topicScores": [
-                    { "topic": "Development Environments & Git", "score": 95, "label": "Expert" },
-                    { "topic": "Embeddings & Vector Spaces", "score": 92, "label": "Expert" },
-                    { "topic": "Semantic Search & Metrics", "score": 90, "label": "Advanced" },
-                    { "topic": "RAG Architecture & Evaluation", "score": 94, "label": "Expert" },
-                    { "topic": "Vector Databases & Scaling", "score": 88, "label": "Advanced" },
-                    { "topic": "Prompt Engineering & Agents", "score": 91, "label": "Expert" },
-                    { "topic": "Security, Guardrails & MCP", "score": 89, "label": "Advanced" },
-                    { "topic": "Enterprise System Architecture", "score": 93, "label": "Expert" }
+                    { "topic": "Technical Proficiency", "score": 40, "label": "Needs Improvement" }
                 ]
             }
+
+        return {
+            "reply": "Thank you. The 15-stage technical interview is now complete. Here is your performance evaluation.",
+            "done": True,
+            "feedback": feedback_data
         }
 
     target_topic = TOPIC_SEQUENCE[current_turn]
@@ -257,7 +290,7 @@ STRICT INSTRUCTIONS:
             contents="\n".join(chat_contents)
         )
         
-        reply_text= response.text.strip()
+        reply_text = response.text.strip()
         session["history"].append({"role": "model", "parts": [reply_text]})
         
         return {

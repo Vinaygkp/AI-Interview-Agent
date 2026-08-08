@@ -24,28 +24,27 @@ function scoreColors(score: number): ScoreColor {
 
 export default function Feedback({ feedback, onHome }: Props) {
   const defaultFeedback = {
-    summary: "The candidate demonstrated elite technical proficiency, delivering rigorous, production-grade architectural explanations across advanced AI engineering domains.",
+    summary: "The candidate completed the 15-stage technical interview evaluation. Review the detailed competency breakdown below.",
     strengths: [
-      "Deep architectural clarity on vector databases, HNSW/IVF indexing, and memory-disk trade-offs",
-      "Precise technical handling of hybrid search, RAG pipelines, and evaluation metrics (MRR/NDCG)",
-      "Robust comprehension of agentic loops, structured outputs, and security guardrails"
+      "Completed all required stages of the technical evaluation workflow",
+      "Engaged consistently throughout the questioning process"
     ],
     gaps: [
-      "Minor optimization areas in ultra-low latency distributed edge-deployment scenarios"
+      "Certain architectural depth and edge-case handling concepts require further practice"
     ],
     next: [
-      "Implement multi-agent orchestration frameworks with Model Context Protocol (MCP)",
-      "Deploy custom evaluation harnesses for continuous LLM regression testing"
+      "Review core system design principles and distributed architecture patterns",
+      "Practice detailed technical implementations for advanced engineering topics"
     ],
     topicScores: [
-      { topic: "Development Environments & Git", score: 95, label: "Expert" },
-      { topic: "Embeddings & Vector Spaces", score: 92, label: "Expert" },
-      { topic: "Semantic Search & Metrics", score: 90, label: "Advanced" },
-      { topic: "RAG Architecture & Evaluation", score: 94, label: "Expert" },
-      { topic: "Vector Databases & Scaling", score: 88, label: "Advanced" },
-      { topic: "Prompt Engineering & Agents", score: 91, label: "Expert" },
-      { topic: "Security, Guardrails & MCP", score: 89, label: "Advanced" },
-      { topic: "Enterprise System Architecture", score: 93, label: "Expert" }
+      { topic: "Development Environments & Git", score: 75, label: "Competent" },
+      { topic: "Embeddings & Vector Spaces", score: 70, label: "Competent" },
+      { topic: "Semantic Search & Metrics", score: 72, label: "Competent" },
+      { topic: "RAG Architecture & Evaluation", score: 68, label: "Competent" },
+      { topic: "Vector Databases & Scaling", score: 65, label: "Competent" },
+      { topic: "Prompt Engineering & Agents", score: 70, label: "Competent" },
+      { topic: "Security, Guardrails & MCP", score: 65, label: "Competent" },
+      { topic: "Enterprise System Architecture", score: 68, label: "Competent" }
     ]
   }
 
