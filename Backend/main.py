@@ -67,6 +67,25 @@ TOPIC_SEQUENCE = [
     "Enterprise System Architecture"
 ]
 
+# Smart Fallback Question Pool for each topic in case API limit hits
+TOPIC_FALLBACK_QUESTIONS = {
+    "Development Environments & Git": "How do you manage feature branches, merge conflicts, and reproducible development setups in a collaborative engineering team?",
+    "Embeddings & Vector Spaces": "How do high-dimensional vector spaces capture semantic meaning, and what role do dense embeddings play in modern machine learning pipelines?",
+    "Semantic Search & Distance Metrics": "What are the trade-offs between Cosine Similarity, Euclidean Distance, and Dot Product when implementing semantic search over large datasets?",
+    "RAG Architecture Basics": "Can you walk through the standard Retrieval-Augmented Generation lifecycle, from document ingestion and chunking to generation?",
+    "Advanced RAG & Retrieval Evaluation": "How do you handle hybrid search (combining keyword and vector search) and evaluate retrieval precision using metrics like MRR or NDCG?",
+    "Vector Databases & Indexing": "Explain how approximate nearest neighbor (ANN) algorithms like HNSW or IVF indices balance search speed, memory footprint, and recall accuracy.",
+    "Vector DB Scaling & Trade-offs": "When scaling a vector database to tens of millions of embeddings, what are the primary throughput and memory trade-offs you encounter?",
+    "Prompt Engineering Fundamentals": "What strategies do you use for system prompt structuring, few-shot prompting, and minimizing hallucination in production LLMs?",
+    "Structured Outputs & Function Calling": "How do you enforce deterministic JSON schemas and handle tool/function calling reliably with LLMs?",
+    "Agentic AI & Reasoning Loops": "Explain how ReAct (Reasoning and Acting) loops enable autonomous agents to execute complex, multi-step tasks dynamically.",
+    "Multi-Agent Orchestration": "What design patterns do you use for coordinating multiple autonomous agents, managing state, and handling inter-agent communication?",
+    "Model Context Protocol (MCP)": "How does the Model Context Protocol standardize secure context exchange between clients, servers, and external tools?",
+    "AI System Security & Guardrails": "What mitigation strategies do you implement to prevent prompt injection attacks, data leaks, and malicious jailbreaks in production AI apps?",
+    "Production AI Deployment": "How do you handle rate limiting, fallback caching, and latency optimization when deploying LLM backends to production environments?",
+    "Enterprise System Architecture": "Design a resilient, scalable enterprise system architecture integrating LLMs, caching layers, vector search, and observability pipelines."
+}
+
 class CandidateSchema(BaseModel):
     id: Optional[str] = None
     name: Optional[str] = "Candidate"
@@ -104,20 +123,17 @@ def handle_interview(payload: InterviewRequest):
             session["candidate"] = payload.candidate.dict()
             candidate = session["candidate"]
 
-        # Check if user is asking for an explanation instead of answering
         user_msg = payload.message.strip().lower() if payload.message else ""
-        is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about"])
+        is_explanation_request = any(keyword in user_msg for keyword in ["explain", "samjha", "what is", "how does", "i don't know", "tell me about", "no"])
         
         if payload.message:
             session["history"].append({"role": "user", "parts": [payload.message]})
-            # Only increment turn count if it's NOT a request for explanation, so they stay on the same topic and get taught!
             if not is_explanation_request or session["turn_count"] == 0:
                 session["turn_count"] += 1
 
         current_turn = session["turn_count"]
         total_questions = 15
 
-        # Check if interview is complete after 15 turns
         if current_turn >= total_questions:
             return {
                 "reply": "Thank you. The 15-stage technical interview is now complete.",
@@ -130,7 +146,6 @@ def handle_interview(payload: InterviewRequest):
                 }
             }
 
-        # Determine target topic based on current turn index
         target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
 
         intro_instruction = ""
@@ -139,12 +154,11 @@ def handle_interview(payload: InterviewRequest):
         else:
             intro_instruction = "Provide brief, encouraging transitional feedback or context regarding the candidate's previous response."
 
-        # Add specific instruction if user asked for an explanation
         explanation_guidance = ""
         if is_explanation_request:
             explanation_guidance = f"""
-CRITICAL OVERRIDE: The candidate has asked you to explain the concept ("{payload.message}").
-DO NOT evaluate a response or skip ahead. Act as a supportive technical mentor:
+CRITICAL OVERRIDE: The candidate has asked for an explanation or expressed uncertainty ("{payload.message}").
+Act as a supportive technical mentor:
 1. Clearly and concisely explain the core concepts of "{target_topic}".
 2. After explaining, ask a helpful, guiding follow-up question on "{target_topic}" to check their understanding.
 """
@@ -194,24 +208,27 @@ STRICT INSTRUCTIONS:
     except Exception as e:
         print("CRITICAL ERROR IN /api/interview:", str(e))
         
-        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e) or client is None:
-            current_turn = sessions.get(payload.sessionId, {}).get("turn_count", 0)
-            target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
-            cand_name = payload.candidate.name if payload.candidate else "Candidate"
-            
-            fallback_text = f"Let's break down the core concepts of {target_topic}.\n\nIn this domain, engineers focus on robust architectural patterns and scalable trade-offs.\n\nCan you explain how you would apply this concept in a real-world system?"
-            
-            if payload.sessionId in sessions:
-                sessions[payload.sessionId]["history"].append({"role": "model", "parts": [fallback_text]})
+        # Smart Fallback mechanism using pre-defined unique topic questions
+        current_turn = sessions.get(payload.sessionId, {}).get("turn_count", 0)
+        target_topic = TOPIC_SEQUENCE[min(current_turn, len(TOPIC_SEQUENCE) - 1)]
+        cand_name = payload.candidate.name if payload.candidate else "Candidate"
+        
+        specific_question = TOPIC_FALLBACK_QUESTIONS.get(target_topic, "Can you explain the architecture and key trade-offs in this module?")
+        
+        if current_turn == 0:
+            fallback_text = f"Hello {cand_name}! Welcome to your technical assessment interview.\n\nLet's dive into our discussion on {target_topic}.\n\n{specific_question}"
+        else:
+            fallback_text = f"Thank you for your input. Let's move forward to our next focus area: {target_topic}.\n\n{specific_question}"
+        
+        if payload.sessionId in sessions:
+            sessions[payload.sessionId]["history"].append({"role": "model", "parts": [fallback_text]})
 
-            return {
-                "reply": fallback_text,
-                "done": False,
-                "current_topic": target_topic,
-                "stage": current_turn + 1
-            }
-            
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "reply": fallback_text,
+            "done": False,
+            "current_topic": target_topic,
+            "stage": current_turn + 1
+        }
 
 if __name__ == "__main__":
     import uvicorn
