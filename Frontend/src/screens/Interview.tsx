@@ -114,7 +114,7 @@ export default function Interview({ candidate, onComplete, onExit }: Props) {
     setIsThinking(true)
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       
       const response = await fetch(`${backendUrl}/api/interview`, {
         method: 'POST',
