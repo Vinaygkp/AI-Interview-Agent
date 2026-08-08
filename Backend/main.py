@@ -67,7 +67,7 @@ TOPIC_SEQUENCE = [
     "Enterprise System Architecture"
 ]
 
-# Smart Fallback Question Pool with multiple variations per topic so it never repeats the exact same line
+# Smart Fallback Question Pool with multiple variations per topic so it never repeats
 TOPIC_FALLBACK_POOL = {
     "Development Environments & Git": [
         "How do you manage feature branches, merge conflicts, and reproducible development setups in a collaborative engineering team?",
@@ -237,8 +237,9 @@ STRICT INSTRUCTIONS:
         if not client:
             raise Exception("Gemini client is not initialized. Check your API key.")
 
+        # Fixed valid model name (gemini-1.5-flash) to prevent 400 Bad Request errors
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents="\n".join(chat_contents)
         )
         
