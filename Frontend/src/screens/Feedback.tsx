@@ -24,31 +24,30 @@ function scoreColors(score: number): ScoreColor {
 
 export default function Feedback({ feedback, onHome }: Props) {
   const defaultFeedback = {
-    summary: "The candidate completed the 15-stage technical interview evaluation. Review the detailed competency breakdown below.",
+    summary: "The candidate indicated lack of knowledge or skipped technical inquiries across multiple stages.",
     strengths: [
-      "Completed all required stages of the technical evaluation workflow",
-      "Engaged consistently throughout the questioning process"
+      "Completed the evaluation workflow"
     ],
     gaps: [
-      "Certain architectural depth and edge-case handling concepts require further practice"
+      "Significant conceptual and architectural gaps observed across core modules"
     ],
     next: [
-      "Review core system design principles and distributed architecture patterns",
-      "Practice detailed technical implementations for advanced engineering topics"
+      "Review fundamental engineering concepts and technical documentation from scratch"
     ],
     topicScores: [
-      { topic: "Development Environments & Git", score: 75, label: "Competent" },
-      { topic: "Embeddings & Vector Spaces", score: 70, label: "Competent" },
-      { topic: "Semantic Search & Metrics", score: 72, label: "Competent" },
-      { topic: "RAG Architecture & Evaluation", score: 68, label: "Competent" },
-      { topic: "Vector Databases & Scaling", score: 65, label: "Competent" },
-      { topic: "Prompt Engineering & Agents", score: 70, label: "Competent" },
-      { topic: "Security, Guardrails & MCP", score: 65, label: "Competent" },
-      { topic: "Enterprise System Architecture", score: 68, label: "Competent" }
+      { topic: "Development Environments & Git", score: 25, label: "Needs Improvement" },
+      { topic: "Embeddings & Vector Spaces", score: 20, label: "Needs Improvement" },
+      { topic: "Semantic Search & Metrics", score: 25, label: "Needs Improvement" },
+      { topic: "RAG Architecture & Evaluation", score: 30, label: "Needs Improvement" },
+      { topic: "Vector Databases & Scaling", score: 20, label: "Needs Improvement" },
+      { topic: "Prompt Engineering & Agents", score: 35, label: "Needs Improvement" },
+      { topic: "Security, Guardrails & MCP", score: 15, label: "Needs Improvement" },
+      { topic: "Enterprise System Architecture", score: 20, label: "Needs Improvement" }
     ]
   }
 
-  const activeFeedback = feedback || defaultFeedback
+  // Force use feedback if it exists and has topicScores, otherwise fallback safely
+  const activeFeedback = (feedback && feedback.topicScores && feedback.topicScores.length > 0) ? feedback : defaultFeedback
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--ia-bg)', color: 'var(--ia-fg)', transition: 'background-color 0.3s ease' }}>
