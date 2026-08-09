@@ -175,28 +175,30 @@ def handle_interview(payload: InterviewRequest):
     current_turn = session["turn_count"]
     total_questions = 15
 
-    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages & generate dynamic feedback
+    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages & generate strict evaluated feedback
     if current_turn >= total_questions:
         eval_prompt = f"""
-You are an expert technical evaluator and hiring manager. Analyze the entire interview chat history for candidate {candidate.get('name')} (Role: {candidate.get('jobRole')}, Experience: {candidate.get('yearsExperience')} years).
-Evaluate their actual answers across the interview stages. 
-IMPORTANT: If the candidate gave weak answers, said "no", expressed ignorance, or skipped questions, reflect that accurately with lower scores (e.g., 20% to 50%) and highlight those gaps. If they gave brilliant, detailed answers, give high scores.
+You are an extremely strict, uncompromising technical hiring manager and evaluator. Analyze the entire interview chat history for candidate {candidate.get('name')} (Role: {candidate.get('jobRole')}, Experience: {candidate.get('yearsExperience')} years).
+CRITICAL GRADING RULE: 
+- Look closely at what the candidate actually typed in response. If the candidate answered "I don't know", "no", "don't know", or gave incorrect/vague conceptual answers, you MUST heavily penalize them. 
+- Give very low scores (between 15% to 45%) for any topic where they showed ignorance, skipped, or failed to answer properly. 
+- Do NOT inflate scores. Be brutally honest.
 
 You MUST return ONLY a valid JSON object (no markdown code blocks, just raw JSON) with the following exact structure:
 {{
-  "summary": "A detailed executive summary of their performance based strictly on their actual answers provided in the chat.",
-  "strengths": ["Specific strength based on answers", "Another strength"],
-  "gaps": ["Specific knowledge gap or area where they said no/weakly", "Another gap"],
-  "next": ["Actionable next step to improve", "Another recommendation"],
+  "summary": "An honest, critical summary of their performance highlighting their lack of knowledge or gaps where they said 'I don't know'.",
+  "strengths": ["Only list a strength if genuinely demonstrated, otherwise state 'None demonstrated'"],
+  "gaps": ["List specific knowledge gaps where the candidate failed to answer or expressed ignorance"],
+  "next": ["Actionable step to learn the basics from scratch"],
   "topicScores": [
-    {{ "topic": "Development Environments & Git", "score": <0-100>, "label": "<Expert/Advanced/Competent/Developing/Needs Improvement>" }},
-    {{ "topic": "Embeddings & Vector Spaces", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "Semantic Search & Metrics", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "RAG Architecture & Evaluation", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "Vector Databases & Scaling", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "Prompt Engineering & Agents", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "Security, Guardrails & MCP", "score": <0-100>, "label": "<Label>" }},
-    {{ "topic": "Enterprise System Architecture", "score": <0-100>, "label": "<Label>" }}
+    {{ "topic": "Development Environments & Git", "score": 30, "label": "Needs Improvement" }},
+    {{ "topic": "Embeddings & Vector Spaces", "score": 25, "label": "Needs Improvement" }},
+    {{ "topic": "Semantic Search & Metrics", "score": 35, "label": "Needs Improvement" }},
+    {{ "topic": "RAG Architecture & Evaluation", "score": 40, "label": "Developing" }},
+    {{ "topic": "Vector Databases & Scaling", "score": 30, "label": "Needs Improvement" }},
+    {{ "topic": "Prompt Engineering & Agents", "score": 45, "label": "Developing" }},
+    {{ "topic": "Security, Guardrails & MCP", "score": 20, "label": "Needs Improvement" }},
+    {{ "topic": "Enterprise System Architecture", "score": 25, "label": "Needs Improvement" }}
   ]
 }}
 """
@@ -225,12 +227,12 @@ You MUST return ONLY a valid JSON object (no markdown code blocks, just raw JSON
         except Exception as e:
             print("Error generating dynamic feedback, using fallback:", e)
             feedback_data = {
-                "summary": f"The interview for {candidate.get('name')} concluded. Based on the responses provided, further preparation is recommended in key technical areas.",
+                "summary": f"The interview for {candidate.get('name')} concluded. Based on the responses provided, significant preparation is required across all key technical competencies.",
                 "strengths": ["Completed the evaluation workflow"],
-                "gaps": ["Several technical concepts require deeper understanding and practice"],
-                "next": ["Review core system design patterns and practice technical fundamentals"],
+                "gaps": ["Candidate indicated lack of knowledge or skipped technical inquiries"],
+                "next": ["Review core system design patterns and build technical fundamentals from scratch"],
                 "topicScores": [
-                    { "topic": "Technical Proficiency", "score": 40, "label": "Needs Improvement" }
+                    { "topic": "Technical Proficiency", "score": 30, "label": "Needs Improvement" }
                 ]
             }
 
