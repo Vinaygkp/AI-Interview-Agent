@@ -175,30 +175,32 @@ def handle_interview(payload: InterviewRequest):
     current_turn = session["turn_count"]
     total_questions = 15
 
-    # ABSOLUTE HARD CHECK: Prevent going beyond 15 stages & generate strict evaluated feedback
+    # COMPLETION & PURE AI-DRIVEN DYNAMIC EVALUATION
     if current_turn >= total_questions:
         eval_prompt = f"""
-You are an extremely strict, uncompromising technical hiring manager and evaluator. Analyze the entire interview chat history for candidate {candidate.get('name')} (Role: {candidate.get('jobRole')}, Experience: {candidate.get('yearsExperience')} years).
-CRITICAL GRADING RULE: 
-- Look closely at what the candidate actually typed in response. If the candidate answered "I don't know", "no", "don't know", or gave incorrect/vague conceptual answers, you MUST heavily penalize them. 
-- Give very low scores (between 15% to 45%) for any topic where they showed ignorance, skipped, or failed to answer properly. 
-- Do NOT inflate scores. Be brutally honest.
+You are an expert, strict, and independent technical hiring manager and evaluator. 
+Analyze the entire conversation history below for candidate {candidate.get('name')} (Role: {candidate.get('jobRole')}, Experience: {candidate.get('yearsExperience')} years).
 
-You MUST return ONLY a valid JSON object (no markdown code blocks, just raw JSON) with the following exact structure:
+CRITICAL EVALUATION RULES:
+1. Thoroughly read all candidate answers in the history. If the candidate answered "I don't know", gave vague/incorrect responses, or avoided questions, you MUST evaluate them critically and give low scores (e.g., 15% to 45%) with labels like "Needs Improvement".
+2. If the candidate gave detailed, accurate technical explanations, give high scores.
+3. Group or map the evaluation across key engineering topics into the requested JSON schema naturally based strictly on their actual answers.
+
+You MUST return ONLY a valid JSON object (no markdown, no backticks, just raw JSON) matching this exact structure:
 {{
-  "summary": "An honest, critical summary of their performance highlighting their lack of knowledge or gaps where they said 'I don't know'.",
-  "strengths": ["Only list a strength if genuinely demonstrated, otherwise state 'None demonstrated'"],
-  "gaps": ["List specific knowledge gaps where the candidate failed to answer or expressed ignorance"],
-  "next": ["Actionable step to learn the basics from scratch"],
+  "summary": "An objective, thorough summary of the candidate's performance based strictly on their actual chat responses.",
+  "strengths": ["Specific strength demonstrated in the chat, or 'None demonstrated' if they struggled"],
+  "gaps": ["Specific technical gap or concept where the candidate gave weak answers or expressed ignorance"],
+  "next": ["Actionable recommendation for improvement"],
   "topicScores": [
-    {{ "topic": "Development Environments & Git", "score": 30, "label": "Needs Improvement" }},
-    {{ "topic": "Embeddings & Vector Spaces", "score": 25, "label": "Needs Improvement" }},
-    {{ "topic": "Semantic Search & Metrics", "score": 35, "label": "Needs Improvement" }},
-    {{ "topic": "RAG Architecture & Evaluation", "score": 40, "label": "Developing" }},
-    {{ "topic": "Vector Databases & Scaling", "score": 30, "label": "Needs Improvement" }},
-    {{ "topic": "Prompt Engineering & Agents", "score": 45, "label": "Developing" }},
-    {{ "topic": "Security, Guardrails & MCP", "score": 20, "label": "Needs Improvement" }},
-    {{ "topic": "Enterprise System Architecture", "score": 25, "label": "Needs Improvement" }}
+    {{ "topic": "Development Environments & Git", "score": <integer 0-100>, "label": "<Needs Improvement/Developing/Competent/Advanced>" }},
+    {{ "topic": "Embeddings & Vector Spaces", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "Semantic Search & Metrics", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "RAG Architecture & Evaluation", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "Vector Databases & Scaling", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "Prompt Engineering & Agents", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "Security, Guardrails & MCP", "score": <integer 0-100>, "label": "<label>" }},
+    {{ "topic": "Enterprise System Architecture", "score": <integer 0-100>, "label": "<label>" }}
   ]
 }}
 """
@@ -225,14 +227,21 @@ You MUST return ONLY a valid JSON object (no markdown code blocks, just raw JSON
             else:
                 raise Exception("Client not initialized")
         except Exception as e:
-            print("Error generating dynamic feedback, using fallback:", e)
+            print("Error generating dynamic feedback from AI:", e)
             feedback_data = {
-                "summary": f"The interview for {candidate.get('name')} concluded. Based on the responses provided, significant preparation is required across all key technical competencies.",
-                "strengths": ["Completed the evaluation workflow"],
-                "gaps": ["Candidate indicated lack of knowledge or skipped technical inquiries"],
-                "next": ["Review core system design patterns and build technical fundamentals from scratch"],
+                "summary": f"The interview for {candidate.get('name')} concluded. Review the topic breakdown based on session responses.",
+                "strengths": ["Completed the full evaluation workflow"],
+                "gaps": ["Further revision recommended across core technical modules"],
+                "next": ["Deep dive into system design and advanced AI patterns"],
                 "topicScores": [
-                    { "topic": "Technical Proficiency", "score": 30, "label": "Needs Improvement" }
+                    { "topic": "Development Environments & Git", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Embeddings & Vector Spaces", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Semantic Search & Metrics", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "RAG Architecture & Evaluation", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Vector Databases & Scaling", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Prompt Engineering & Agents", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Security, Guardrails & MCP", "score": 40, "label": "Needs Improvement" },
+                    { "topic": "Enterprise System Architecture", "score": 40, "label": "Needs Improvement" }
                 ]
             }
 
